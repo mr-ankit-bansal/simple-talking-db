@@ -1,0 +1,71 @@
+import streamlit as st
+from langchain.chains import create_sql_query_chain
+from sqlalchemy import create_engine
+from sqlalchemy.exc import ProgrammingError
+from langchain_community.utilities import SQLDatabase
+from dotenv import load_dotenv
+from langchain_groq import ChatGroq
+import os
+from dotenv import load_dotenv
+from langchain.chat_models import init_chat_model
+import re
+load_dotenv() 
+
+# Database connection parameters
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
+db_host = os.getenv("DB_HOST")
+db_name = os.getenv("DB_NAME")
+
+# Create SQLAlchemy engine
+engine = create_engine(f"mysql+pymysql://{db_user}:{db_password}@{db_host}:3307/{db_name}")
+
+# Initialize SQLDatabase
+db = SQLDatabase(engine, sample_rows_in_table_info=3)
+
+# Initialize LLM
+llm =ChatGroq(model="llama3-8b-8192")
+
+# Create SQL query chain
+chain = create_sql_query_chain(llm, db)
+
+def execute_query(question):
+    try:
+        # Generate SQL query from question
+        response = chain.invoke({"question": question})
+        print(response)
+       
+        # strip the formatting markers from the response
+        # sql_query = response.split("SQLQuery:")[1].strip("```sql\n").strip("\n```")
+        sql_query = response.split("SQLQuery:")[1].strip("```sql\n")
+        print("Extracted SQL Query:", sql_query)
+
+        # Execute the query
+        result = db.run(sql_query)
+                
+        # Return the query and the result
+        return sql_query, result
+    except ProgrammingError as e:
+        st.error(f"An error occurred: {e}")
+        return None, None
+
+# Streamlit interface
+st.title("Question Answering App")
+
+# Input from user
+question = st.text_input("Enter your question:")
+
+if st.button("Execute"):
+    if question:
+        cleaned_query, query_result = execute_query(question)
+        
+        if cleaned_query and query_result is not None:
+            st.write("Generated SQL Query:")
+            st.code(cleaned_query, language="sql")
+            st.write("Query Result:")
+            st.write(query_result)
+        else:
+            st.write("No result returned due to an error.")
+    else:
+        st.write("Please enter a question.")
+        
