@@ -1,0 +1,3 @@
+1. streamlit run app.py
+2. Q1: How many series are there?
+3. Q2: Provide list of series names

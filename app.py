@@ -3,12 +3,9 @@ from langchain.chains import create_sql_query_chain
 from sqlalchemy import create_engine
 from sqlalchemy.exc import ProgrammingError
 from langchain_community.utilities import SQLDatabase
-from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 import os
 from dotenv import load_dotenv
-from langchain.chat_models import init_chat_model
-import re
 load_dotenv() 
 
 # Database connection parameters
